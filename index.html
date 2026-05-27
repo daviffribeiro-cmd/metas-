@@ -283,6 +283,7 @@ tbody tr.grow td:first-child{background:transparent}
     <button class="tb"     onclick="sw('geral')">Visão Geral</button>
     <button class="tb"     onclick="sw('sims')">Simulados 2026</button>
     <button class="tb"     onclick="sw('chart')">Gráfico</button>
+    <button class="tb"     onclick="sw('acoes')">Ações da Unidade</button>
   </div>
 
   <div class="view on" id="view-visao">
@@ -317,6 +318,10 @@ tbody tr.grow td:first-child{background:transparent}
       <div class="chart-hdr"><h3 id="chartTitle">Comparativo</h3></div>
       <div class="chart-wrap"><canvas id="mainChart"></canvas></div>
     </div>
+  </div>
+
+  <div class="view" id="view-acoes">
+    <div id="acoesV"></div>
   </div>
 
 
@@ -413,6 +418,7 @@ function selUnit(u){
   document.querySelectorAll('.nb').forEach(b=>b.classList.toggle('on',b.textContent===UN[u]));
   closeDetail(false);
   if(aView==='visao') renderUnit();
+  if(aView==='acoes') renderAcoes();
 }
 
 function sw(v){
@@ -420,10 +426,11 @@ function sw(v){
   document.querySelectorAll('.view').forEach(el=>el.classList.remove('on'));
   document.getElementById('view-'+v).classList.add('on');
   document.querySelectorAll('.tb').forEach((t,i)=>
-    t.classList.toggle('on',['visao','geral','sims','chart'][i]===v));
+    t.classList.toggle('on',['visao','geral','sims','chart','acoes'][i]===v));
   if(v==='chart') renderChart();
   if(v==='geral') renderGeral();
   if(v==='sims')  renderSims();
+  if(v==='acoes') renderAcoes();
 }
 
 // ── TAB 1 — POR UNIDADE ──
@@ -905,6 +912,221 @@ function wsUpdate(val){
   }
 }
 
+
+// ── AÇÕES DA UNIDADE ──────────────────────────────────────────
+const AD={
+  BG:{
+    mapa:[
+      {c:'AFA',     f:[{s:'Física',p:94},{s:'Matemática',p:82},{s:'Inglês',p:34},{s:'Português',p:24}]},
+      {c:'EFOMM/EN',f:[{s:'Física',p:100},{s:'Matemática',p:94},{s:'Inglês',p:61},{s:'Português',p:56}]},
+      {c:'EsPCEx',  f:[{s:'Física',p:86},{s:'Química',p:77},{s:'Matemática',p:77},{s:'Português',p:64},{s:'Inglês',p:23}]},
+      {c:'EPCAr',   f:[{s:'Matemática',p:70},{s:'Português',p:63},{s:'Inglês',p:22}]},
+      {c:'CN',      f:[{s:'Matemática',p:97},{s:'Ciências',p:87},{s:'Português',p:80},{s:'Est. Sociais',p:77},{s:'Inglês',p:63}]},
+    ],
+    acoes:[
+      {p:0,t:'Intensivo de Física',d:'Mecânica, Eletrostática, Termodinâmica — eliminatório em AFA (94%), EFOMM (100%) e EsPCEx (86%)'},
+      {p:0,t:'Resolução de provas antigas de Física',d:'Mín. 2 simulados completos/semana. Identificar e corrigir padrões de erro (AFA + EsPCEx)'},
+      {p:1,t:'Reforço de Matemática',d:'Funções, Geometria Plana/Espacial, Trigonometria — 82% em AFA, 97% no CN'},
+      {p:1,t:'Simulado interno semanal',d:'Aplicar prova completa toda semana com correção imediata e revisão dos temas com maior erro'},
+      {p:2,t:'Revisão de Português',d:'Interpretação de texto e gramática — 63% no EPCAr, 80% no CN'},
+      {p:3,t:'Manutenção de Inglês',d:'Ponto forte (22–34% reprovação). Manter rotina de leitura e vocabulário contextual'},
+    ]
+  },
+  CG:{
+    mapa:[
+      {c:'AFA',     f:[{s:'Física',p:89},{s:'Matemática',p:74},{s:'Português',p:47},{s:'Inglês',p:37}]},
+      {c:'EFOMM/EN',f:[{s:'Física',p:100},{s:'Matemática',p:100},{s:'Português',p:89},{s:'Inglês',p:78}]},
+      {c:'EsPCEx',  f:[{s:'Física',p:100},{s:'Química',p:100},{s:'Matemática',p:100},{s:'Português',p:100},{s:'Inglês',p:14}]},
+      {c:'EPCAr',   f:[{s:'Matemática',p:87},{s:'Português',p:70},{s:'Inglês',p:24}]},
+      {c:'CN',      f:[{s:'Matemática',p:95},{s:'Ciências',p:85},{s:'Português',p:82},{s:'Est. Sociais',p:77},{s:'Inglês',p:55}]},
+    ],
+    acoes:[
+      {p:0,t:'Reestruturação de Física',d:'100% reprovação em EFOMM e EsPCEx — aulas diárias obrigatórias. Foco: Mecânica e Eletricidade'},
+      {p:0,t:'Intensivo de Matemática',d:'100% reprovação em EFOMM e EsPCEx, 95% no CN — revisão completa de funções, geometria e progressões'},
+      {p:0,t:'Reforço urgente de Português',d:'100% reprovação no EsPCEx — interpretação de texto, gramática, redação argumentativa'},
+      {p:0,t:'Resolução massiva de provas antigas',d:'Priorizar EsPCEx e EFOMM — 2 simulados completos por semana com correção coletiva'},
+      {p:2,t:'Revisão de Química',d:'100% reprovação no EsPCEx — funções inorgânicas, estequiometria, soluções'},
+      {p:3,t:'Manutenção de Inglês',d:'Único ponto forte (14–24% reprovação). Manter rotina mínima semanal'},
+    ]
+  },
+  MD:{
+    mapa:[
+      {c:'AFA',     f:[{s:'Física',p:83},{s:'Matemática',p:69},{s:'Inglês',p:27},{s:'Português',p:21}]},
+      {c:'EFOMM/EN',f:[{s:'Física',p:100},{s:'Matemática',p:100},{s:'Inglês',p:75},{s:'Português',p:56}]},
+      {c:'EsPCEx',  f:[{s:'Física',p:100},{s:'Química',p:78},{s:'Matemática',p:67},{s:'Português',p:67},{s:'Inglês',p:22}]},
+      {c:'EPCAr',   f:[{s:'Matemática',p:57},{s:'Português',p:43},{s:'Inglês',p:14}]},
+      {c:'CN',      f:[{s:'Matemática',p:82},{s:'Ciências',p:75},{s:'Português',p:67},{s:'Est. Sociais',p:61},{s:'Inglês',p:48}]},
+    ],
+    acoes:[
+      {p:0,t:'Intensivo de Física',d:'100% reprovação em EFOMM/EN e EsPCEx — Mecânica (cinemática, dinâmica), Eletrostática, Termodinâmica'},
+      {p:0,t:'Resolução de provas antigas de Física',d:'2 simulados/semana (AFA + EsPCEx). Cronograma fixo de resolução e revisão'},
+      {p:1,t:'Reforço de Matemática',d:'100% reprovação em EFOMM/EN, 83% no AFA — Funções, Geometria, Trigonometria, Matrizes'},
+      {p:1,t:'Simulado semanal com gabarito comentado',d:'Priorizar EsPCEx e EFOMM. Revisão coletiva dos erros mais frequentes'},
+      {p:2,t:'Revisão de Química',d:'78% reprovação no EsPCEx — estequiometria, funções inorgânicas, equilíbrio químico'},
+      {p:3,t:'Manutenção de Inglês e Português',d:'Melhor desempenho entre as unidades nessas disciplinas. Manter rotina leve para não regredir'},
+    ]
+  },
+  NI:{
+    mapa:[
+      {c:'AFA',     f:[{s:'Física',p:100},{s:'Matemática',p:57},{s:'Inglês',p:19},{s:'Português',p:10}]},
+      {c:'EFOMM/EN',f:[{s:'Física',p:87},{s:'Matemática',p:87},{s:'Português',p:67},{s:'Inglês',p:53}]},
+      {c:'EsPCEx',  f:[{s:'Física',p:86},{s:'Matemática',p:71},{s:'Química',p:71},{s:'Português',p:43},{s:'Inglês',p:43}]},
+      {c:'EPCAr',   f:[{s:'Matemática',p:83},{s:'Português',p:59},{s:'Inglês',p:20}]},
+      {c:'CN',      f:[{s:'Matemática',p:94},{s:'Ciências',p:87},{s:'Português',p:77},{s:'Est. Sociais',p:70},{s:'Inglês',p:43}]},
+    ],
+    acoes:[
+      {p:0,t:'Atenção máxima em Física',d:'100% reprovação no AFA — pior índice individual de toda a rede. Aulas diárias obrigatórias'},
+      {p:0,t:'Resolução intensiva de provas de Física',d:'Mín. 3 provas antigas por semana (AFA + EsPCEx). Foco: Mecânica e Eletricidade'},
+      {p:1,t:'Reforço de Matemática',d:'87% reprovação em EFOMM, 94% no CN — Funções, Geometria Plana/Espacial, Trigonometria'},
+      {p:1,t:'Simulado interno semanal',d:'Com correção imediata. Focar nos padrões de erro repetidos (Física e Matemática)'},
+      {p:2,t:'Revisão de Português',d:'67% reprovação no EFOMM, 77% no CN — interpretação e gramática contextual'},
+      {p:3,t:'Manutenção de Inglês',d:'Ponto mais forte (19–20% reprovação em AFA e EPCAr). Manter ritmo regular'},
+    ]
+  },
+  TQ:{
+    mapa:[
+      {c:'AFA',     f:[{s:'Física',p:95},{s:'Matemática',p:75},{s:'Inglês',p:40},{s:'Português',p:15}]},
+      {c:'EFOMM/EN',f:[{s:'Física',p:87},{s:'Matemática',p:78},{s:'Inglês',p:39},{s:'Português',p:13}]},
+      {c:'EsPCEx',  f:[{s:'Física',p:100},{s:'Química',p:78},{s:'Matemática',p:60},{s:'Português',p:44},{s:'Inglês',p:20}]},
+      {c:'EPCAr',   f:[{s:'Matemática',p:80},{s:'Português',p:64},{s:'Inglês',p:18}]},
+      {c:'CN',      f:[{s:'Matemática',p:98},{s:'Ciências',p:86},{s:'Português',p:73},{s:'Est. Sociais',p:69},{s:'Inglês',p:63}]},
+    ],
+    acoes:[
+      {p:0,t:'Intensivo de Física',d:'95–100% reprovação em AFA e EsPCEx — Mecânica, Termodinâmica, Óptica e Eletrostática'},
+      {p:0,t:'Resolução de provas antigas de Física',d:'2 simulados completos/semana. Corrigir coletivamente os erros mais frequentes'},
+      {p:1,t:'Reforço de Matemática',d:'75–98% reprovação — Funções do 1º/2º grau, Geometria Plana, Trigonometria, Combinatória'},
+      {p:1,t:'Simulado interno semanal',d:'Focar em AFA e CN. Taquara tem bom Português — equilibrar tempo de estudo priorizando exatas'},
+      {p:2,t:'Revisão de Química',d:'78% reprovação no EsPCEx — funções inorgânicas, estequiometria, ligações químicas'},
+      {p:3,t:'Manutenção de Português',d:'Melhor disciplina da unidade (13–15% reprovação). Manter exercícios regulares de interpretação'},
+    ]
+  },
+  RM:{
+    mapa:[
+      {c:'EFOMM',   f:[{s:'Física',p:100},{s:'Matemática',p:100},{s:'Português',p:100},{s:'Inglês',p:100}]},
+      {c:'EsPCEx',  f:[{s:'Física',p:100},{s:'Matemática',p:75},{s:'Química',p:63},{s:'Português',p:50},{s:'Inglês',p:25}]},
+      {c:'EPCAr',   f:[{s:'Matemática',p:89},{s:'Português',p:77},{s:'Inglês',p:34}]},
+      {c:'CN',      f:[{s:'Matemática',p:94},{s:'Ciências',p:92},{s:'Português',p:88},{s:'Est. Sociais',p:69},{s:'Inglês',p:74}]},
+    ],
+    acoes:[
+      {p:0,t:'Reestruturação completa de Física',d:'100% reprovação em EFOMM e EsPCEx — aulas diárias obrigatórias. Mecânica, Eletrostática, Óptica'},
+      {p:0,t:'Intensivo de Matemática',d:'89–100% reprovação — revisão completa de funções, geometria, trigonometria e combinatória'},
+      {p:0,t:'Resolução massiva de provas antigas',d:'EsPCEx e EPCAr são os concursos com maior potencial da unidade — priorizar resolução dessas provas'},
+      {p:1,t:'Reforço de Português',d:'77–88% reprovação em EPCAr e CN — interpretação de texto, sintaxe e concordância'},
+      {p:2,t:'Revisão de Ciências (CN)',d:'92% reprovação — Biologia básica, Física elementar e Química fundamental'},
+      {p:3,t:'Desenvolvimento de Inglês',d:'Relativamente melhor (25–34% em EsPCEx/EPCAr). Ampliar vocabulário contextual e tempos verbais'},
+    ]
+  },
+  GERAL:{
+    mapa:[
+      {c:'AFA',     f:[{s:'Física',p:92},{s:'Matemática',p:75},{s:'Inglês',p:31},{s:'Português',p:21}]},
+      {c:'EFOMM/EN',f:[{s:'Física',p:93},{s:'Matemática',p:93},{s:'Português',p:57},{s:'Inglês',p:54}]},
+      {c:'EsPCEx',  f:[{s:'Física',p:95},{s:'Química',p:79},{s:'Matemática',p:75},{s:'Português',p:62},{s:'Inglês',p:21}]},
+      {c:'EPCAr',   f:[{s:'Matemática',p:76},{s:'Português',p:64},{s:'Inglês',p:22}]},
+      {c:'CN',      f:[{s:'Matemática',p:93},{s:'Ciências',p:85},{s:'Português',p:77},{s:'Est. Sociais',p:71},{s:'Inglês',p:59}]},
+    ],
+    acoes:[
+      {p:0,t:'Física é o gargalo universal',d:'92–95% reprovação em AFA, EFOMM e EsPCEx. Toda unidade precisa de intensivo imediato de Física'},
+      {p:0,t:'Matemática: segundo maior eliminatório',d:'75–93% reprovação em todos os concursos — prioridade alta em todas as unidades'},
+      {p:0,t:'Cronograma fixo de resolução de provas',d:'Implementar em todas as unidades: mín. 2 provas/semana (AFA + EsPCEx + EPCAr)'},
+      {p:1,t:'Química (EsPCEx) — atenção crescente',d:'79% reprovação geral — estequiometria, funções inorgânicas, soluções e equilíbrio'},
+      {p:2,t:'Português: desempenho heterogêneo',d:'MD e TQ performam bem; CG e RM têm gargalo sério. Ações diferenciadas por unidade'},
+      {p:3,t:'Inglês: ponto forte da rede',d:'21–31% reprovação em AFA/EsPCEx. Manter rotina leve para sustentar a vantagem competitiva'},
+    ]
+  },
+};
+
+function renderAcoes(){
+  const u=aUnit;
+  const dat=AD[u]||AD.GERAL;
+  const d=RAW[u];
+  const nms={BG:'Bangu',CG:'Campo Grande',MD:'Madureira',NI:'Nova Iguaçu',TQ:'Taquara',RM:'Rocha Miranda',GERAL:'Todas as Unidades'};
+  const vis=u==='GERAL'?INSTS:INSTS.filter(i=>d[i]&&d[i].m26!==null);
+  const meta=vis.reduce((s,i)=>s+(d[i]?.m26||0),0);
+  const prjN=vis.reduce((s,i)=>{const p=proj(u,i);return s+(p||0);},0);
+  const pct=meta>0?Math.min(100,Math.round(prjN/meta*100)):0;
+  const gap=Math.max(0,meta-prjN);
+  const pcol=p=>p>=80?'#dc2626':p>=60?'#d97706':p>=40?'#f59e0b':'#16a34a';
+  const pbg =p=>p>=80?'#fee2e2':p>=60?'#fef3c7':p>=40?'#fffbeb':'#f0fdf4';
+  const pcls=pct>=100?'gn':pct>=70?'am':'rd';
+  const pLabel=['🔴 URGENTE','🟠 ALTA','🟡 MÉDIA','🟢 MANUTENÇÃO'];
+  const pColors=['#dc2626','#ea580c','#d97706','#16a34a'];
+  const pBgs=['#fef2f2','#fff7ed','#fffbeb','#f0fdf4'];
+
+  document.getElementById('acoesV').innerHTML=`
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">
+    <div>
+      <div style="font-size:20px;font-weight:900;color:var(--navy)">${nms[u]||u}</div>
+      <div style="font-size:12px;color:var(--t3);margin-top:2px">Diagnóstico + Plano de Ação — baseado nos últimos simulados realizados</div>
+    </div>
+  </div>
+
+  <div class="kpi-row" style="margin-bottom:24px">
+    <div class="kpi ${pcls}"><div class="kpi-bar"></div><div class="kpi-body">
+      <div class="kpi-ico">🎯</div><div class="kpi-n">${meta}</div>
+      <div class="kpi-lbl">Meta 2026</div><div class="kpi-sub">aprovações esperadas</div>
+    </div></div>
+    <div class="kpi ${pcls}"><div class="kpi-bar"></div><div class="kpi-body">
+      <div class="kpi-ico">📈</div><div class="kpi-n">${prjN}</div>
+      <div class="kpi-lbl">Projeção Atual</div><div class="kpi-sub">${pct}% da meta</div>
+    </div></div>
+    <div class="kpi ${gap>0?'rd':'gn'}"><div class="kpi-bar"></div><div class="kpi-body">
+      <div class="kpi-ico">${gap>0?'⚠️':'✅'}</div><div class="kpi-n">${gap}</div>
+      <div class="kpi-lbl">Gap para a Meta</div><div class="kpi-sub">aprovações faltando</div>
+    </div></div>
+    <div class="kpi bl"><div class="kpi-bar"></div><div class="kpi-body">
+      <div class="kpi-ico">🚨</div><div class="kpi-n">${dat.acoes.filter(a=>a.p===0).length}</div>
+      <div class="kpi-lbl">Ações Urgentes</div><div class="kpi-sub">executar imediatamente</div>
+    </div></div>
+  </div>
+
+  <div class="slbl">Mapa de Vulnerabilidades — % de reprovação por disciplina e concurso</div>
+  <div class="tbl-wrap" style="margin-bottom:24px">
+    <table>
+      <thead>
+        <tr>
+          <th style="text-align:left">Concurso</th>
+          <th>Física</th><th>Matemática</th><th>Química</th>
+          <th>Português</th><th>Inglês</th><th>Ciências</th><th>Est. Sociais</th>
+        </tr>
+        <tr>
+          <th style="text-align:left">Legenda</th>
+          <th colspan="6" style="text-align:left;font-weight:500">
+            <span style="background:#fee2e2;color:#dc2626;padding:1px 7px;border-radius:4px;font-size:10px;margin-right:4px">≥80% reprov.</span>
+            <span style="background:#fef3c7;color:#d97706;padding:1px 7px;border-radius:4px;font-size:10px;margin-right:4px">60–79%</span>
+            <span style="background:#fffbeb;color:#f59e0b;padding:1px 7px;border-radius:4px;font-size:10px;margin-right:4px">40–59%</span>
+            <span style="background:#f0fdf4;color:#16a34a;padding:1px 7px;border-radius:4px;font-size:10px">&lt;40%</span>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        ${dat.mapa.map(row=>{
+          const get=s=>row.f.find(x=>x.s===s);
+          const cell=s=>{const x=get(s);if(!x)return'<td style="color:var(--t3);text-align:center;background:#fff">—</td>';
+            return '<td style="background:'+pbg(x.p)+';color:'+pcol(x.p)+';font-weight:800;text-align:center;font-size:12px">'+x.p+'%</td>';};
+          return '<tr><td style="font-weight:800;color:var(--navy)">'+row.c+'</td>'+
+            cell('Física')+cell('Matemática')+cell('Química')+cell('Português')+cell('Inglês')+cell('Ciências')+cell('Est. Sociais')+'</tr>';
+        }).join('')}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="slbl">Plano de Ação Prioritário</div>
+  <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:28px">
+    ${dat.acoes.map((a,i)=>
+      '<div style="display:flex;gap:14px;align-items:flex-start;background:'+pBgs[a.p]+';border:1.5px solid '+pColors[a.p]+'33;border-left:4px solid '+pColors[a.p]+';border-radius:var(--r);padding:14px 16px">'+
+      '<div style="font-size:22px;font-weight:900;color:'+pColors[a.p]+';min-width:28px;text-align:center;line-height:1.2">'+(i+1)+'</div>'+
+      '<div style="flex:1">'+
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">'+
+      '<span style="font-size:13px;font-weight:800;color:var(--navy)">'+a.t+'</span>'+
+      '<span style="font-size:10px;font-weight:700;background:'+pColors[a.p]+';color:#fff;padding:2px 8px;border-radius:20px">'+pLabel[a.p]+'</span>'+
+      '</div>'+
+      '<div style="font-size:12px;color:var(--t2);line-height:1.5">'+a.d+'</div>'+
+      '</div></div>'
+    ).join('')}
+  </div>
+
+  `;
+}
 
 init();
 </script>
